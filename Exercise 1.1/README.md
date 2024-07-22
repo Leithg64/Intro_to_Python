@@ -1,7 +1,7 @@
 # Intro_to_Python
  
 # First Task
-#Task Goals:
+Task Goals:
 Create developer virtual enviroment to avoide package version conflicts
 Creat python file with python program to add two numbers using basic python syntax
 #Exercise 1.1 Files:
