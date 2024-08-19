@@ -1,34 +1,40 @@
+# models.py
 from django.db import models
+from django.contrib.auth.models import User
+from django.shortcuts import reverse
 
-# Create your models here.
 class Recipe(models.Model):
-    # class attributes
     name = models.CharField(max_length=50)
-    ingredients = models.CharField(
-        max_length=225, help_text="Enter the ingredients, separated by a comma"
-    )
-    cooking_time = models.IntegerField(help_text="Enter cooking time in minutes")
-    difficulty = None
-    pic = models.ImageField(upload_to="recipes", default="no_picture.jpg")
+    cooking_time = models.IntegerField()
+    ingredients = models.TextField()
+    pic = models.ImageField(upload_to='recipe_pics', default='no_picture.jpg')
+    difficulty = models.CharField(max_length=20, blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
 
-    # determine recipe difficulty
-    @property
-    def difficulty(self):
-        ingredients = self.ingredients.split(", ")
-        if self.cooking_time < 10 and len(ingredients) < 4:
-            return "Easy"
-        elif self.cooking_time < 10 and len(ingredients) >= 4:
-            return "Medium"
-        elif self.cooking_time >= 10 and len(ingredients) < 4:
-            return "Intermediate"
-        elif self.cooking_time >= 10 and len(ingredients) >= 4:
-            return "Hard"
-        return "Unknown"
+    # ingredients as list
+    def return_ingredients_as_list(self):
+        if not self.ingredients:
+            return []
+        return self.ingredients.split(", ")
 
-    # string representation
+    # calculate difficulty level
+    def calculate_difficulty(self):
+        num_ingredients = len(self.return_ingredients_as_list())
+        if self.cooking_time < 10 and num_ingredients < 4:
+            self.difficulty = "Easy"
+        elif self.cooking_time < 10 and num_ingredients >= 4:
+            self.difficulty = "Medium"
+        elif self.cooking_time >= 10 and num_ingredients < 4:
+            self.difficulty = "Intermediate"
+        else:
+            self.difficulty = "Hard"
+
+    # Override the save method to calculate difficulty before saving a new recipe via the form
+    def save(self, *args, **kwargs):
+        self.calculate_difficulty()
+        super().save(*args, **kwargs)
+
+    # string representation of the model
     def __str__(self):
-        return str(self.name)
-
-    # primary key of recipe object becomes clickable
-    def get_absolute_url(self):
-        return reverse("recipes:detail", kwargs={"pk": self.pk})
+        return self.name
+    
