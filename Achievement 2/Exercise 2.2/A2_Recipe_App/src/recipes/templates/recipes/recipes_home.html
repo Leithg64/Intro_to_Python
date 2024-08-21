@@ -1,39 +1,72 @@
+<!-- this is for loading static files, to load files from the server you need to use load staticfiles instead of load static -->
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <title>RecipeApp Home</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    {% load static %}
-    <link rel="shortcut icon" href="{% static 'recipes/images/favicon.png' %}">
-    <link rel='stylesheet' type='text/css' href="{% static 'recipes/css/styles.css' %}">
-    <style type="text/css">
-        body {
-            background: url("{% static 'recipes/images/home_background.jpg' %}") no-repeat fixed;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe App Home</title>
+    <style>
+       body {
+            background: url("{% static 'recipes/images/recipe_img-1.jpg' %}") no-repeat center center fixed; 
+            -webkit-background-size: cover;
+            -moz-background-size: cover;
+            -o-background-size: cover;
             background-size: cover;
             display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        
+        }
+        .background {
+            background: url("{% static 'recipes/images/recipe_img-1.jpg' %}") no-repeat center center fixed; 
+            -webkit-background-size: cover;
+            -moz-background-size: cover;
+            -o-background-size: cover;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
             flex-direction: column;
             align-items: center;
-            margin-top: 30vh;
+            z-index: 1;
         }
-
-        h1,
-        h3 {
-            color: rgb(7, 120, 90);
-            font-family: 'Roboto Mono', 'Calibri', 'Trebuchet MS', sans-serif;
+        .button-container button {
+            width: 300px;
+            height: 80px;
+            border: none;
+            border-radius: 10px;
+            background-color: rgb(255, 96, 33);
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            font-size: 28px;
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
         }
+        h1 {
+            color: darkred;
+            font-size: 58px;
+            text-align: center;
+            z-index: 1;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 
-        img {
-            border-radius: 15px;
         }
     </style>
 </head>
-
 <body>
-    <img src="{% static 'recipes/images/logo.png' %}" width="300px">
-    <h1>Welcome to My Recipe App</h1>
-    <h3>Log in to your account to see our list of recipes</h3>
-    <a href="{%url 'login' %}" class="login_btn"> Login </a>
+    <div class="button-container">
+        <h1>Welcome to the Recipe App</h1>
+        <a href="{% url 'login' %}">
+            <button type="button">Login</button>
+        </a>
+    </div>
 </body>
-
 </html>

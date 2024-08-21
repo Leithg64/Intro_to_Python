@@ -1,84 +1,83 @@
-# views.py
-from django.shortcuts import render, reverse, redirect
-from django.views.generic import ListView, DetailView
+# imported by default
+from django.shortcuts import render
+# This will allow the list to be displayed as a list, and the detail to be displayed as a detail
+from django.views.generic import ListView, DeleteView
+#import the model
+from .models import recipes
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.views import LogoutView as AuthLogoutView
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from .models import Recipe
-from .forms import RecipeSearchForm, RecipeForm
-from .utils import get_chart, rename_columns
+from .forms import SearchForm, RecipeSearchForm
+from django.db.models import Q
 import pandas as pd
+from .utils import get_recipename_from_id, get_chart
 
+# from django.http import HttpResponseRedirect
+
+# define the home view here - function based view
 def home(request):
     return render(request, 'recipes/recipes_home.html')
 
-@login_required
-def search(request):
-    form = RecipeSearchForm(request.POST or None)
-    recipes_df = None
-    chart = None
-
-    if 'show_all' in request.GET:
-        recipe_name = ''
-        chart_type = 'pie-chart'
-        # Redirect to remove 'show_all' from the URL
-        return redirect(request.path)
-    else:
-        recipe_name = request.POST.get('recipe_name', '')
-        chart_type = request.POST.get('chart_type', 'pie-chart')
-
-    qs = Recipe.objects.filter(name__icontains=recipe_name)
-    if qs.exists():
-        recipes_df = pd.DataFrame(qs.values('id', 'name', 'cooking_time', 'ingredients', 'difficulty'))
-        chart = get_chart(chart_type, recipes_df, labels=recipes_df['name'].values)
-        recipes_df['link'] = recipes_df['id'].apply(lambda x: f'<a href="{reverse("recipes:recipe_detail", kwargs={"pk": x})}">Details</a>')
-
-        # Drop the 'id' column from the DataFrame
-        recipes_df = recipes_df.drop(columns=['id'])
-
-        # Rename the columns
-        recipes_df = rename_columns(recipes_df)
-
-        recipes_df = recipes_df.to_html(classes='table table-striped', escape=False, index=False)
-
-    context = {
-        'form': form,
-        'recipes_df': recipes_df,
-        'chart': chart
-    }
-
-    return render(request, 'recipes/recipes_search.html', context)
-
-@login_required
-def submit_recipe(request):
-    if request.method == 'POST':
-        form = RecipeForm(request.POST, request.FILES)
-        if form.is_valid():
-            recipe = form.save(commit=False)
-            recipe.created_by = request.user
-            recipe.save()
-            return JsonResponse({'status': 'success'}, status=200)
-        else:
-            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
-    else:
-        form = RecipeForm()
-    
-    return render(request, 'recipes/new_recipe.html', {'form': form})
-
-@login_required
-def about_me(request):
-    return render(request, 'recipes/about_me.html')
+# Create the recipe list view here - Class based view
 
 class RecipeListView(LoginRequiredMixin, ListView):
-    model = Recipe
+    model = recipes
     template_name = 'recipes/recipes_list.html'
     context_object_name = 'recipes'
+    ordering = ['name']
 
-class RecipeDetailView(LoginRequiredMixin, DetailView):
-    model = Recipe
-    template_name = 'recipes/recipe_detail.html'
-    context_object_name = 'recipe'
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = SearchForm()
+        return context
+    def post(self, request, *args, **kwargs):
+        form = SearchForm(request.POST)
+        if not form.is_valid():
+            return super().get(request, *args, **kwargs)
 
-class LogoutView(AuthLogoutView):
-    template_name = 'recipes/success.html'
+        name_query = form.cleaned_data['search_term']
+        # ingredients_query = form.cleaned_data['ingredients']
+        self.object_list = self.model.objects.filter(name__icontains=name_query)
+        # self.object_list = self.model.objects.filter(name__icontains=ingredients_query)
+        context = self.get_context_data(object_list=self.object_list, form=form)
+        return render(request, self.template_name, context)
+    
+# Recipe detail view here - class based view
+class RecipeDetailView(LoginRequiredMixin, DeleteView):
+    model = recipes
+    template_name = 'recipes/recipes_detail.html'
+    context_object_name = 'recipes_detail'
+    ordering = ['name']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = SearchForm()
+        return context
+    
+    
+
+
+def search_view(request):
+    form = RecipeSearchForm(request.POST or None)
+    recipe_df = None
+    chart = None
+    qs = None
+    #check if button is clicked 
+    if request.method == 'POST':
+        #check chart type
+        chart_type = request.POST.get('chart_type')
+
+        qs = recipes.objects.all()
+        if qs:
+            recipe_df = pd.DataFrame(qs.values())
+            chart = get_chart(chart_type, recipe_df,
+                              labels=recipe_df['name'].values)
+
+            recipe_df = recipe_df.to_html()
+    #pack up data to be sent to template in the context dictionary
+    context = {
+        'form': form,
+        'recipe_df': recipe_df,
+        'chart': chart,
+        'qs': qs,
+    }
+    #load the recipes/search.html page using the data that was just prepared above
+    return render(request, 'recipes/search.html', context)
